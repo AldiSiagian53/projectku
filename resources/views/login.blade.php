@@ -112,14 +112,21 @@
             </form>
 
             {{-- FOOTER --}}
-            <div class="mt-6 text-center">
-                <p class="text-xs text-gray-500">
-                    © 2024 Eco Power Monitoring. All rights reserved.
-                </p>
-            </div>
+            <footer class="w-full mt-10  border-gray-700 pt-6 pb-6">
+                <div class="flex flex-col items-center justify-center gap-2">
+                    <p class="text-sm font-semibold tracking-wide text-gray-300">
+                        Eco Power Monitoring
+                    </p>
+
+                    <p class="text-xs text-gray-400">
+                        © 2025 IFMalam3C-3 — All Rights Reserved
+                    </p>
+                </div>
+            </footer>
         </div>
     </div>
 
 </body>
 </html>
+
 

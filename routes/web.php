@@ -20,4 +20,7 @@ Route::get('/', function () {
 // Protected Routes (requires authentication)
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/report', [App\Http\Controllers\ReportController::class, 'index'])->name('report.index');
+    // routes/web.php
+    Route::get('/alerts', [App\Http\Controllers\AlertController::class, 'index'])->name('alerts.index');
 });
