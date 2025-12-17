@@ -2,7 +2,7 @@
   <img src="https://www.polibatam.ac.id/wp-content/uploads/2022/01/poltek-2048x1821.png" alt="Logo Polibatam" width="300"/>
 </p>
 
-<h1 align="center">CMS Website for Flower Bucket (Floralish)</h1>
+<h1 align="center">EcoPower Monitoring Berbasis IoT Terhadap Kendaraan Listrik</h1>
 
 ---
 
