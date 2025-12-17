@@ -4,7 +4,7 @@ import time
 import re
 
 # Konfigurasi
-PORT = 'COM4'  # Ganti sesuai port Anda (cek di Device Manager / Arduino IDE)
+PORT = 'COM13'  # Ganti sesuai port Anda (cek di Device Manager / Arduino IDE)
 BAUDRATE = 115200  # Sesuaikan dengan baudrate di Arduino (biasanya 115200 untuk ESP32)
 LARAVEL_API_URL = 'http://localhost:8000/api/sensor'  # Endpoint sesuai routes/api.php
 
