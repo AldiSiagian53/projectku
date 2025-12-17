@@ -2,76 +2,117 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\SensorData;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class ReportController extends Controller
 {
     public function index(Request $request)
     {
-        // Dummy Data Daily (Harian) - dalam kWh
-        // Simulasi data 7 hari dengan variasi cuaca
-        $labelsDaily = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
-        
-        // Energy In - Produksi PLTS (tergantung cuaca)
-        $energyInDaily = [
-            15.8,  // Sen - Cerah
-            12.3,  // Sel - Berawan
-            18.2,  // Rab - Sangat cerah
-            9.5,   // Kam - Hujan
-            16.7,  // Jum - Cerah
-            14.1,  // Sab - Berawan
-            11.2   // Min - Mendung
-        ];
-        
-        // Energy Out - Konsumsi daya (weekend biasanya lebih tinggi)
-        $energyOutDaily = [
-            10.5,  // Sen
-            11.2,  // Sel  
-            10.8,  // Rab
-            12.1,  // Kam - AC extra
-            9.8,   // Jum
-            14.3,  // Sab - Weekend, penggunaan lebih
-            13.7   // Min - Weekend
-        ];
+        // Data Daily (7 hari terakhir) - Sinkron dengan dashboard
+        $dailyData = $this->getDailyData();
+        $labelsDaily = $dailyData['labels'];
+        $energyInDaily = $dailyData['energy_in'];
+        $energyOutDaily = $dailyData['energy_out'];
 
-        // Dummy Data Monthly (Bulanan) - dalam kWh
-        $labelsMonthly = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-        
-        // Energy In bulanan - Simulasi produksi PLTS sepanjang tahun
-        $energyInMonthly = [
-            420,   // Jan - Musim hujan, produksi rendah
-            480,   // Feb
-            550,   // Mar - Mulai musim kemarau
-            620,   // Apr
-            680,   // Mei - Puncak produksi
-            650,   // Jun
-            630,   // Jul
-            610,   // Agu
-            580,   // Sep
-            520,   // Okt - Mulai musim hujan
-            460,   // Nov
-            430    // Des
-        ];
-        
-        // Energy Out bulanan - Simulasi konsumsi sepanjang tahun
-        $energyOutMonthly = [
-            380,   // Jan - AC sedikit
-            360,   // Feb
-            350,   // Mar
-            340,   // Apr
-            370,   // Mei - AC mulai dinyalakan
-            420,   // Jun - AC intensif
-            480,   // Jul - Puncak konsumsi AC
-            460,   // Agu
-            430,   // Sep
-            390,   // Okt
-            370,   // Nov
-            385    // Des
-        ];
+        // Data Monthly (12 bulan terakhir) - dari database
+        $monthlyData = $this->getMonthlyData();
+        $labelsMonthly = $monthlyData['labels'];
+        $energyInMonthly = $monthlyData['energy_in'];
+        $energyOutMonthly = $monthlyData['energy_out'];
 
         return view('report', compact(
             'labelsDaily', 'energyInDaily', 'energyOutDaily',
             'labelsMonthly', 'energyInMonthly', 'energyOutMonthly'
         ));
+    }
+
+    /**
+     * Get daily data (7 hari terakhir) - sama seperti dashboard
+     */
+    private function getDailyData()
+    {
+        $sevenDaysAgo = Carbon::now()->subDays(6)->startOfDay();
+        
+        // Group by date dan ambil rata-rata per hari
+        $dailyData = SensorData::where('created_at', '>=', $sevenDaysAgo)
+            ->select(
+                DB::raw('DATE(created_at) as date'),
+                DB::raw('AVG(charging_power) as avg_energy_in'),
+                DB::raw('AVG(panel_power) as avg_energy_out')
+            )
+            ->groupBy('date')
+            ->orderBy('date')
+            ->get();
+
+        // Generate labels dan data untuk 7 hari terakhir
+        $labels = [];
+        $energyIn = [];
+        $energyOut = [];
+        
+        for ($i = 6; $i >= 0; $i--) {
+            $date = Carbon::now()->subDays($i);
+            $dateStr = $date->format('Y-m-d');
+            $labels[] = $date->format('D'); // Format: Mon, Tue, etc.
+            
+            $dayData = $dailyData->firstWhere('date', $dateStr);
+            $energyIn[] = $dayData ? round($dayData->avg_energy_in, 2) : 0;
+            $energyOut[] = $dayData ? round($dayData->avg_energy_out, 2) : 0;
+        }
+
+        return [
+            'labels' => $labels,
+            'energy_in' => $energyIn,
+            'energy_out' => $energyOut,
+        ];
+    }
+
+    /**
+     * Get monthly data (12 bulan terakhir)
+     */
+    private function getMonthlyData()
+    {
+        $twelveMonthsAgo = Carbon::now()->subMonths(11)->startOfMonth();
+        
+        // Group by month dan ambil rata-rata per bulan (SQLite compatible)
+        $monthlyData = SensorData::where('created_at', '>=', $twelveMonthsAgo)
+            ->select(
+                DB::raw('strftime("%Y-%m", created_at) as month'),
+                DB::raw('AVG(charging_power) as avg_energy_in'),
+                DB::raw('AVG(panel_power) as avg_energy_out'),
+                DB::raw('COUNT(*) as data_count')
+            )
+            ->groupBy('month')
+            ->orderBy('month')
+            ->get();
+
+        // Generate labels dan data untuk 12 bulan terakhir
+        $labels = [];
+        $energyIn = [];
+        $energyOut = [];
+        
+        for ($i = 11; $i >= 0; $i--) {
+            $date = Carbon::now()->subMonths($i);
+            $monthStr = $date->format('Y-m');
+            $labels[] = $date->format('M'); // Format: Jan, Feb, etc.
+            
+            $monthData = $monthlyData->firstWhere('month', $monthStr);
+            // Untuk monthly, kalikan rata-rata dengan jumlah hari estimasi (30 hari)
+            if ($monthData && $monthData->data_count > 0) {
+                $energyIn[] = round($monthData->avg_energy_in * 30, 2); // Estimasi bulanan
+                $energyOut[] = round($monthData->avg_energy_out * 30, 2);
+            } else {
+                $energyIn[] = 0;
+                $energyOut[] = 0;
+            }
+        }
+
+        return [
+            'labels' => $labels,
+            'energy_in' => $energyIn,
+            'energy_out' => $energyOut,
+        ];
     }
 }

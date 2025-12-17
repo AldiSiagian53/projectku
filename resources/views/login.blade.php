@@ -8,6 +8,9 @@
     {{-- FONT MONTSERRAT --}}
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700&display=swap" rel="stylesheet">
     
+    {{-- REMIX ICON --}}
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.5.0/fonts/remixicon.css" rel="stylesheet">
+    
     {{-- TAILWIND --}}
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
@@ -111,6 +114,17 @@
                 </button>
             </form>
 
+            {{-- ADMIN LOGIN BUTTON (Hidden by default, shown with Ctrl+Shift+Q) --}}
+            <div id="adminLoginButton" class="hidden mt-4">
+                <a 
+                    href="{{ route('admin.login') }}" 
+                    class="w-full bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-semibold py-3 px-4 rounded-lg shadow-lg transform transition duration-200 hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 flex items-center justify-center"
+                >
+                    <i class="ri-admin-line mr-2"></i>
+                    Admin Login
+                </a>
+            </div>
+
             {{-- FOOTER --}}
             <footer class="w-full mt-10  border-gray-700 pt-6 pb-6">
                 <div class="flex flex-col items-center justify-center gap-2">
@@ -126,7 +140,74 @@
         </div>
     </div>
 
+    {{-- HIDDEN KEY LISTENER: Ctrl+Shift+Q untuk menampilkan Admin Login Button --}}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const adminLoginButton = document.getElementById('adminLoginButton');
+            let keysPressed = {
+                ctrl: false,
+                shift: false,
+                q: false
+            };
+
+            // Track keydown
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Control' || e.key === 'Meta') {
+                    keysPressed.ctrl = true;
+                }
+                if (e.key === 'Shift') {
+                    keysPressed.shift = true;
+                }
+                if (e.key === 'q' || e.key === 'Q') {
+                    keysPressed.q = true;
+                }
+
+                // Check if Ctrl+Shift+Q is pressed
+                if (keysPressed.ctrl && keysPressed.shift && keysPressed.q) {
+                    e.preventDefault(); // Prevent default behavior
+                    
+                    // Toggle visibility of admin login button
+                    if (adminLoginButton) {
+                        adminLoginButton.classList.toggle('hidden');
+                        
+                        // Activate admin access in session
+                        fetch('{{ route("admin.activate") }}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                            }
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                console.log('Admin access activated');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                        });
+                    }
+                }
+            });
+
+            // Track keyup to reset keys
+            document.addEventListener('keyup', function(e) {
+                if (e.key === 'Control' || e.key === 'Meta') {
+                    keysPressed.ctrl = false;
+                }
+                if (e.key === 'Shift') {
+                    keysPressed.shift = false;
+                }
+                if (e.key === 'q' || e.key === 'Q') {
+                    keysPressed.q = false;
+                }
+            });
+        });
+    </script>
+
 </body>
 </html>
+
 
 

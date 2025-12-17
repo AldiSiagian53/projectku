@@ -9,3 +9,26 @@
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 }
+
+.glow-text {
+    text-shadow:
+        0 0 5px rgba(255,255,255,0.6),
+        0 0 10px rgba(255,255,255,0.4),
+        0 0 15px rgba(255,255,255,0.2);
+    animation: glow 2.5s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+    from {
+        text-shadow:
+            0 0 5px rgba(255,255,255,0.4),
+            0 0 10px rgba(255,255,255,0.2),
+            0 0 15px rgba(255,255,255,0.1);
+    }
+    to {
+        text-shadow:
+            0 0 10px rgba(255,255,255,0.8),
+            0 0 20px rgba(255,255,255,0.6),
+            0 0 30px rgba(255,255,255,0.4);
+    }
+}

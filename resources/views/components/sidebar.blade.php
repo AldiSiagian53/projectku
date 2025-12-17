@@ -1,3 +1,6 @@
+{{-- REMIX ICON CDN --}}
+<link href="https://cdn.jsdelivr.net/npm/remixicon@4.5.0/fonts/remixicon.css" rel="stylesheet">
+
 {{-- OVERLAY UNTUK MOBILE --}}
 <div id="mobileOverlay" class="fixed inset-0 bg-black bg-opacity-40 z-30 hidden md:hidden backdrop-blur-sm transition-all duration-500"></div>
 
@@ -7,12 +10,9 @@
     <div class="flex-1">
         {{-- LOGO WITH ENHANCED ANIMATION --}}
         <div class="text-center mb-8">
-            <div class="w-16 h-16 mx-auto mb-3 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-2xl flex items-center justify-center shadow-lg transform hover:scale-110 transition-transform duration-300">
-                <span class="text-2xl">⚡</span>
-            </div>
-            <h2 class="text-2xl font-bold logo-glow bg-gradient-to-r from-cyan-400 to-blue-300 bg-clip-text text-transparent">
-                MONITORING PLTS
-            </h2>
+        <h2 class="text-2xl font-bold text-white glow-text">
+            MONITORING PLTS
+        </h2>
             <p class="text-blue-200 text-sm mt-2 opacity-80">Eco Power System</p>
         </div>
 
@@ -21,7 +21,7 @@
             <a href="{{ route('dashboard') }}" class="menu-item-enhanced block py-4 px-4 rounded-xl hover:bg-white/10 transition-all duration-500 border-l-4 border-transparent hover:border-cyan-400 hover:shadow-lg hover:scale-105 group {{ request()->routeIs('dashboard') ? 'bg-white/10 border-cyan-400 shadow-lg' : '' }}">
                 <div class="flex items-center">
                     <div class="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center group-hover:bg-cyan-400/30 transition-colors duration-300 mr-3">
-                        <span class="text-lg">📊</span>
+                        <i class="ri-dashboard-3-line text-lg"></i>
                     </div>
                     <span class="font-semibold">Dashboard</span>
                 </div>
@@ -30,7 +30,7 @@
             <a href="{{ route('report.index') }}" class="menu-item-enhanced block py-4 px-4 rounded-xl hover:bg-white/10 transition-all duration-500 border-l-4 border-transparent hover:border-blue-400 hover:shadow-lg hover:scale-105 group {{ request()->routeIs('report.index') ? 'bg-white/10 border-blue-400 shadow-lg' : '' }}">
                 <div class="flex items-center">
                     <div class="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center group-hover:bg-blue-400/30 transition-colors duration-300 mr-3">
-                        <span class="text-lg">📈</span>
+                        <i class="ri-file-chart-line text-lg"></i>
                     </div>
                     <span class="font-semibold">Report</span>
                 </div>
@@ -39,10 +39,19 @@
             <a href="{{ route('alerts.index') }}" class="menu-item-enhanced block py-4 px-4 rounded-xl hover:bg-white/10 transition-all duration-500 border-l-4 border-transparent hover:border-orange-400 hover:shadow-lg hover:scale-105 group {{ request()->routeIs('alerts.index') ? 'bg-white/10 border-orange-400 shadow-lg' : '' }}">
                 <div class="flex items-center">
                     <div class="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center group-hover:bg-orange-400/30 transition-colors duration-300 mr-3">
-                        <span class="text-lg">🔔</span>
+                        <i class="ri-notification-line text-lg"></i>
                     </div>
                     <span class="font-semibold">Alerts</span>
                     <span class="ml-auto bg-red-500 text-white text-xs px-2 py-1 rounded-full animate-pulse">6</span>
+                </div>
+            </a>
+
+            <a href="{{ route('settings.index') }}" class="menu-item-enhanced block py-4 px-4 rounded-xl hover:bg-white/10 transition-all duration-500 border-l-4 border-transparent hover:border-purple-400 hover:shadow-lg hover:scale-105 group {{ request()->routeIs('settings.*') ? 'bg-white/10 border-purple-400 shadow-lg' : '' }}">
+                <div class="flex items-center">
+                    <div class="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center group-hover:bg-purple-400/30 transition-colors duration-300 mr-3">
+                        <i class="ri-settings-3-line text-lg"></i>
+                    </div>
+                    <span class="font-semibold">Settings</span>
                 </div>
             </a>
         </nav>
@@ -53,15 +62,15 @@
             <div class="space-y-2">
                 <div class="flex justify-between items-center">
                     <span class="text-blue-300 text-sm">Power Output</span>
-                    <span class="text-cyan-400 font-bold">4.2 kW</span>
+                    <span class="text-cyan-400 font-bold">{{ $systemStatus['power_output'] ?? '0.00' }} kW</span>
                 </div>
                 <div class="flex justify-between items-center">
                     <span class="text-blue-300 text-sm">Battery</span>
-                    <span class="text-green-400 font-bold">85%</span>
+                    <span class="text-green-400 font-bold">{{ $systemStatus['battery'] ?? '0' }}%</span>
                 </div>
                 <div class="flex justify-between items-center">
                     <span class="text-blue-300 text-sm">Efficiency</span>
-                    <span class="text-yellow-400 font-bold">92%</span>
+                    <span class="text-yellow-400 font-bold">{{ $systemStatus['efficiency'] ?? '0' }}%</span>
                 </div>
             </div>
         </div>
@@ -73,9 +82,7 @@
             @csrf
             <button type="submit" class="menu-item-enhanced w-full flex items-center py-4 px-4 rounded-xl hover:bg-red-500/20 transition-all duration-500 text-left border-l-4 border-transparent hover:border-red-400 hover:shadow-lg group">
                 <div class="w-8 h-8 rounded-lg bg-red-500/20 flex items-center justify-center group-hover:bg-red-400/30 transition-colors duration-300 mr-3">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
-                    </svg>
+                    <i class="ri-logout-box-line text-lg"></i>
                 </div>
                 <span class="font-semibold group-hover:text-red-200 transition-colors duration-300">Logout</span>
             </button>
@@ -86,9 +93,7 @@
 {{-- MOBILE MENU BUTTON --}}
 <button id="mobileMenuBtn" class="md:hidden fixed top-6 left-6 z-50 bg-gradient-to-br from-cyan-500 to-blue-600 text-white p-4 rounded-2xl shadow-2xl transition-all duration-500 hover:scale-110 hover:shadow-cyan-500/25 hover:from-cyan-600 hover:to-blue-700">
     <div class="relative">
-        <svg class="w-6 h-6 transform transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-        </svg>
+        <i class="ri-menu-line text-2xl"></i>
     </div>
 </button>
 
@@ -99,7 +104,7 @@
         <div class="flex justify-between items-center mb-8">
             <div class="flex items-center space-x-3">
                 <div class="w-12 h-12 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-2xl flex items-center justify-center shadow-lg">
-                    <span class="text-2xl">⚡</span>
+                    <i class="ri-flashlight-line text-2xl"></i>
                 </div>
                 <div>
                     <h2 class="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-blue-300 bg-clip-text text-transparent">
@@ -109,9 +114,7 @@
                 </div>
             </div>
             <button id="closeMobileMenu" class="text-white hover:text-cyan-300 transition-all duration-500 p-2 rounded-lg hover:bg-white/10">
-                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                </svg>
+                <i class="ri-close-line text-2xl"></i>
             </button>
         </div>
 
@@ -120,7 +123,7 @@
             <a href="{{ route('dashboard') }}" class="block py-4 px-4 rounded-2xl hover:bg-white/10 transition-all duration-500 border-l-4 border-transparent hover:border-cyan-400 hover:shadow-lg transform hover:translate-x-2 group {{ request()->routeIs('dashboard') ? 'bg-white/10 border-cyan-400 shadow-lg' : '' }}">
                 <div class="flex items-center">
                     <div class="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center group-hover:bg-cyan-400/30 transition-colors duration-300 mr-4">
-                        <span class="text-xl">📊</span>
+                        <i class="ri-dashboard-3-line text-xl"></i>
                     </div>
                     <span class="font-semibold text-lg">Dashboard</span>
                 </div>
@@ -129,7 +132,7 @@
             <a href="{{ route('report.index') }}" class="block py-4 px-4 rounded-2xl hover:bg-white/10 transition-all duration-500 border-l-4 border-transparent hover:border-blue-400 hover:shadow-lg transform hover:translate-x-2 group {{ request()->routeIs('report.index') ? 'bg-white/10 border-blue-400 shadow-lg' : '' }}">
                 <div class="flex items-center">
                     <div class="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center group-hover:bg-blue-400/30 transition-colors duration-300 mr-4">
-                        <span class="text-xl">📈</span>
+                        <i class="ri-file-chart-line text-xl"></i>
                     </div>
                     <span class="font-semibold text-lg">Report</span>
                 </div>
@@ -138,10 +141,19 @@
             <a href="{{ route('alerts.index') }}" class="block py-4 px-4 rounded-2xl hover:bg-white/10 transition-all duration-500 border-l-4 border-transparent hover:border-orange-400 hover:shadow-lg transform hover:translate-x-2 group {{ request()->routeIs('alerts.index') ? 'bg-white/10 border-orange-400 shadow-lg' : '' }}">
                 <div class="flex items-center">
                     <div class="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center group-hover:bg-orange-400/30 transition-colors duration-300 mr-4">
-                        <span class="text-xl">🔔</span>
+                        <i class="ri-notification-line text-xl"></i>
                     </div>
                     <span class="font-semibold text-lg">Alerts</span>
                     <span class="ml-auto bg-red-500 text-white text-sm px-2 py-1 rounded-full animate-pulse">3</span>
+                </div>
+            </a>
+
+            <a href="{{ route('settings.index') }}" class="block py-4 px-4 rounded-2xl hover:bg-white/10 transition-all duration-500 border-l-4 border-transparent hover:border-purple-400 hover:shadow-lg transform hover:translate-x-2 group {{ request()->routeIs('settings.*') ? 'bg-white/10 border-purple-400 shadow-lg' : '' }}">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center group-hover:bg-purple-400/30 transition-colors duration-300 mr-4">
+                        <i class="ri-settings-3-line text-xl"></i>
+                    </div>
+                    <span class="font-semibold text-lg">Settings</span>
                 </div>
             </a>
         </nav>
@@ -151,13 +163,17 @@
             <h3 class="text-blue-200 text-sm font-semibold mb-3">Live Status</h3>
             <div class="grid grid-cols-2 gap-4">
                 <div class="text-center p-3 bg-white/5 rounded-xl">
-                    <div class="text-cyan-400 font-bold text-lg">4.2 kW</div>
+                    <div class="text-cyan-400 font-bold text-lg">{{ $systemStatus['power_output'] ?? '0.00' }} kW</div>
                     <div class="text-blue-300 text-xs">Power</div>
                 </div>
                 <div class="text-center p-3 bg-white/5 rounded-xl">
-                    <div class="text-green-400 font-bold text-lg">85%</div>
+                    <div class="text-green-400 font-bold text-lg">{{ $systemStatus['battery'] ?? '0' }}%</div>
                     <div class="text-blue-300 text-xs">Battery</div>
                 </div>
+            </div>
+            <div class="mt-3 text-center p-3 bg-white/5 rounded-xl">
+                <div class="text-yellow-400 font-bold text-lg">{{ $systemStatus['efficiency'] ?? '0' }}%</div>
+                <div class="text-blue-300 text-xs">Efficiency</div>
             </div>
         </div>
     </div>
@@ -168,9 +184,7 @@
             @csrf
             <button type="submit" class="w-full flex items-center py-4 px-4 rounded-2xl hover:bg-red-500/20 transition-all duration-500 text-left border-l-4 border-transparent hover:border-red-400 transform hover:translate-x-2 group">
                 <div class="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center group-hover:bg-red-400/30 transition-colors duration-300 mr-4">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
-                    </svg>
+                    <i class="ri-logout-box-line text-xl"></i>
                 </div>
                 <span class="font-semibold text-lg group-hover:text-red-200">Logout</span>
             </button>

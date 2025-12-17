@@ -11,8 +11,8 @@
     {{-- TAILWIND --}}
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
-    {{-- CHART.JS --}}
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    {{-- APACHE ECHARTS (Grafana-like) --}}
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
 
     <style>
         body {
@@ -80,18 +80,27 @@
             <div class="p-6 bg-white rounded-2xl shadow-lg border border-gray-100 transition-all duration-300 hover:shadow-xl hover:scale-[1.02]">
                 <h2 class="text-xl font-semibold text-gray-800 mb-4 flex items-center">
                     <span class="w-3 h-3 bg-blue-500 rounded-full mr-3"></span>
-                    Energy In
+                    Energy In (Charging Power) - 7 Hari Terakhir
                 </h2>
-                <div class="h-64"><canvas id="dailyEnergyIn"></canvas></div>
+                <div id="dailyEnergyIn" style="height: 400px;"></div>
             </div>
 
             {{-- ENERGY OUT CARD --}}
             <div class="p-6 bg-white rounded-2xl shadow-lg border border-gray-100 transition-all duration-300 hover:shadow-xl hover:scale-[1.02]">
                 <h2 class="text-xl font-semibold text-gray-800 mb-4 flex items-center">
                     <span class="w-3 h-3 bg-cyan-500 rounded-full mr-3"></span>
-                    Energy Out
+                    Energy Out (Panel Power) - 7 Hari Terakhir
                 </h2>
-                <div class="h-64"><canvas id="dailyEnergyOut"></canvas></div>
+                <div id="dailyEnergyOut" style="height: 400px;"></div>
+            </div>
+
+            {{-- COMBINED CHART --}}
+            <div class="p-6 bg-white rounded-2xl shadow-lg border border-gray-100 transition-all duration-300 hover:shadow-xl hover:scale-[1.02]">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+                    <span class="w-3 h-3 bg-purple-500 rounded-full mr-3"></span>
+                    Energy Overview - 7 Hari Terakhir
+                </h2>
+                <div id="dailyCombined" style="height: 400px;"></div>
             </div>
         </div>
 
@@ -101,18 +110,27 @@
             <div class="p-6 bg-white rounded-2xl shadow-lg border border-gray-100 transition-all duration-300 hover:shadow-xl hover:scale-[1.02]">
                 <h2 class="text-xl font-semibold text-gray-800 mb-4 flex items-center">
                     <span class="w-3 h-3 bg-blue-500 rounded-full mr-3"></span>
-                    Energy In
+                    Energy In (Charging Power) - 12 Bulan Terakhir
                 </h2>
-                <div class="h-64"><canvas id="monthlyEnergyIn"></canvas></div>
+                <div id="monthlyEnergyIn" style="height: 400px;"></div>
             </div>
 
             {{-- ENERGY OUT CARD --}}
             <div class="p-6 bg-white rounded-2xl shadow-lg border border-gray-100 transition-all duration-300 hover:shadow-xl hover:scale-[1.02]">
                 <h2 class="text-xl font-semibold text-gray-800 mb-4 flex items-center">
                     <span class="w-3 h-3 bg-cyan-500 rounded-full mr-3"></span>
-                    Energy Out
+                    Energy Out (Panel Power) - 12 Bulan Terakhir
                 </h2>
-                <div class="h-64"><canvas id="monthlyEnergyOut"></canvas></div>
+                <div id="monthlyEnergyOut" style="height: 400px;"></div>
+            </div>
+
+            {{-- COMBINED MONTHLY CHART --}}
+            <div class="p-6 bg-white rounded-2xl shadow-lg border border-gray-100 transition-all duration-300 hover:shadow-xl hover:scale-[1.02]">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+                    <span class="w-3 h-3 bg-purple-500 rounded-full mr-3"></span>
+                    Energy Overview - 12 Bulan Terakhir
+                </h2>
+                <div id="monthlyCombined" style="height: 400px;"></div>
             </div>
         </div>
     </main>
@@ -157,7 +175,7 @@
                 }, 500);
             }, 1500);
 
-            // Chart Data
+            // Chart Data (Real data dari database)
             const labelsDaily = {!! json_encode($labelsDaily ?? []) !!};
             const labelsMonthly = {!! json_encode($labelsMonthly ?? []) !!};
             const energyInDaily = {!! json_encode($energyInDaily ?? []) !!};
@@ -165,93 +183,362 @@
             const energyInMonthly = {!! json_encode($energyInMonthly ?? []) !!};
             const energyOutMonthly = {!! json_encode($energyOutMonthly ?? []) !!};
 
-            function createLine(id, labels, data, color, title) {
-            const ctx = document.getElementById(id);
-            if (!ctx) {
-                console.error(`Canvas element with id '${id}' not found`);
-                return null;
-            }
-            
-            // Clear existing chart if any
-            if (ctx.chart) {
-                ctx.chart.destroy();
-            }
+            // Debug log
+            console.log('Report Data Loaded:', {
+                labelsDaily: labelsDaily,
+                labelsMonthly: labelsMonthly,
+                energyInDaily: energyInDaily,
+                energyOutDaily: energyOutDaily,
+                energyInMonthly: energyInMonthly,
+                energyOutMonthly: energyOutMonthly
+            });
 
-            try {
-                const chart = new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            label: title,
-                            data: data,
-                            borderColor: color,
-                            backgroundColor: color + '20',
-                            tension: 0.4,
-                            fill: true,
-                            borderWidth: 3,
-                            pointBackgroundColor: color,
-                            pointBorderColor: '#ffffff',
-                            pointBorderWidth: 2,
-                            pointRadius: 5,
-                            pointHoverRadius: 7
-                        }]
-                    },
-                    options: { 
-                        responsive: true, 
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                display: true,
-                                position: 'top',
-                            },
-                            tooltip: {
-                                callbacks: {
-                                    label: function(context) {
-                                        return `${context.dataset.label}: ${context.parsed.y} kWh`;
-                                    }
-                                }
-                            }
-                        },
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                grid: {
-                                    color: 'rgba(0,0,0,0.1)'
-                                },
-                                title: {
-                                    display: true,
-                                    text: 'Energy (kWh)'
-                                }
-                            },
-                            x: {
-                                grid: {
-                                    display: false
-                                }
-                            }
-                        }
-                    }
-                });
+            // Store chart instances globally
+            let dailyCharts = {};
+            let monthlyCharts = {};
 
-                ctx.chart = chart;
-                return chart;
-            } catch (error) {
-                console.error(`Error creating chart for ${id}:`, error);
-                return null;
-            }
-        }
-
-        // Penggunaan:
-        createLine("dailyEnergyIn", labelsDaily, energyInDaily, "#2563EB", "Energy In");
-        createLine("dailyEnergyOut", labelsDaily, energyOutDaily, "#0EA5E9", "Energy Out");
-
-            // Initialize charts after animation
+            // Initialize ECharts after animation
             setTimeout(() => {
-                createLine("dailyEnergyIn", labelsDaily, energyInDaily, "#2563EB");
-                createLine("dailyEnergyOut", labelsDaily, energyOutDaily, "#0EA5E9");
-                createLine("monthlyEnergyIn", labelsMonthly, energyInMonthly, "#2563EB");
-                createLine("monthlyEnergyOut", labelsMonthly, energyOutMonthly, "#0EA5E9");
+                // Daily Charts (always visible initially)
+                dailyCharts.energyIn = initDailyEnergyInChart();
+                dailyCharts.energyOut = initDailyEnergyOutChart();
+                dailyCharts.combined = initDailyCombinedChart();
+                
+                // Monthly Charts - initialize after element is visible
+                // Will be initialized when user switches to monthly tab
             }, 2000);
+
+            // Daily Energy In Chart
+            function initDailyEnergyInChart() {
+                const element = document.getElementById('dailyEnergyIn');
+                if (!element) {
+                    console.error('Element dailyEnergyIn not found');
+                    return null;
+                }
+                
+                const chart = echarts.init(element);
+                const option = {
+                    tooltip: {
+                        trigger: 'axis',
+                        formatter: '{b}: {c} kWh'
+                    },
+                    xAxis: {
+                        type: 'category',
+                        data: labelsDaily,
+                        boundaryGap: false
+                    },
+                    yAxis: {
+                        type: 'value',
+                        name: 'kWh',
+                        axisLabel: {
+                            formatter: '{value} kWh'
+                        }
+                    },
+                    series: [{
+                        name: 'Energy In',
+                        type: 'line',
+                        smooth: true,
+                        data: energyInDaily,
+                        areaStyle: {
+                            opacity: 0.3
+                        },
+                        lineStyle: {
+                            color: '#2563eb',
+                            width: 3
+                        },
+                        itemStyle: {
+                            color: '#2563eb'
+                        }
+                    }],
+                    grid: {
+                        left: '3%',
+                        right: '4%',
+                        bottom: '3%',
+                        containLabel: true
+                    }
+                };
+                chart.setOption(option);
+                
+                // Responsive
+                window.addEventListener('resize', () => chart.resize());
+                
+                return chart;
+            }
+
+            // Daily Energy Out Chart
+            function initDailyEnergyOutChart() {
+                const element = document.getElementById('dailyEnergyOut');
+                if (!element) {
+                    console.error('Element dailyEnergyOut not found');
+                    return null;
+                }
+                
+                const chart = echarts.init(element);
+                const option = {
+                    tooltip: {
+                        trigger: 'axis',
+                        formatter: '{b}: {c} kWh'
+                    },
+                    xAxis: {
+                        type: 'category',
+                        data: labelsDaily,
+                        boundaryGap: false
+                    },
+                    yAxis: {
+                        type: 'value',
+                        name: 'kWh',
+                        axisLabel: {
+                            formatter: '{value} kWh'
+                        }
+                    },
+                    series: [{
+                        name: 'Energy Out',
+                        type: 'line',
+                        smooth: true,
+                        data: energyOutDaily,
+                        areaStyle: {
+                            opacity: 0.3
+                        },
+                        lineStyle: {
+                            color: '#0ea5e9',
+                            width: 3
+                        },
+                        itemStyle: {
+                            color: '#0ea5e9'
+                        }
+                    }],
+                    grid: {
+                        left: '3%',
+                        right: '4%',
+                        bottom: '3%',
+                        containLabel: true
+                    }
+                };
+                chart.setOption(option);
+                
+                // Responsive
+                window.addEventListener('resize', () => chart.resize());
+                
+                return chart;
+            }
+
+            // Daily Combined Chart
+            function initDailyCombinedChart() {
+                const element = document.getElementById('dailyCombined');
+                if (!element) return null;
+                
+                const chart = echarts.init(element);
+                const option = {
+                    tooltip: {
+                        trigger: 'axis'
+                    },
+                    legend: {
+                        data: ['Energy In', 'Energy Out']
+                    },
+                    xAxis: {
+                        type: 'category',
+                        data: labelsDaily,
+                        boundaryGap: false
+                    },
+                    yAxis: {
+                        type: 'value',
+                        name: 'kWh'
+                    },
+                    series: [
+                        {
+                            name: 'Energy In',
+                            type: 'line',
+                            smooth: true,
+                            data: energyInDaily,
+                            lineStyle: { color: '#2563eb', width: 3 },
+                            itemStyle: { color: '#2563eb' },
+                            areaStyle: { opacity: 0.2 }
+                        },
+                        {
+                            name: 'Energy Out',
+                            type: 'line',
+                            smooth: true,
+                            data: energyOutDaily,
+                            lineStyle: { color: '#0ea5e9', width: 3 },
+                            itemStyle: { color: '#0ea5e9' },
+                            areaStyle: { opacity: 0.2 }
+                        }
+                    ],
+                    grid: {
+                        left: '3%',
+                        right: '4%',
+                        bottom: '3%',
+                        containLabel: true
+                    }
+                };
+                chart.setOption(option);
+                
+                // Responsive
+                window.addEventListener('resize', () => chart.resize());
+                
+                return chart;
+            }
+
+            // Monthly Energy In Chart
+            function initMonthlyEnergyInChart() {
+                const element = document.getElementById('monthlyEnergyIn');
+                if (!element) {
+                    console.error('Element monthlyEnergyIn not found');
+                    return null;
+                }
+                
+                console.log('Initializing monthlyEnergyIn chart', {
+                    labels: labelsMonthly,
+                    data: energyInMonthly
+                });
+                
+                const chart = echarts.init(element);
+                const option = {
+                    tooltip: {
+                        trigger: 'axis',
+                        formatter: '{b}: {c} kWh'
+                    },
+                    xAxis: {
+                        type: 'category',
+                        data: labelsMonthly
+                    },
+                    yAxis: {
+                        type: 'value',
+                        name: 'kWh',
+                        axisLabel: {
+                            formatter: '{value} kWh'
+                        }
+                    },
+                    series: [{
+                        name: 'Energy In',
+                        type: 'bar',
+                        data: energyInMonthly,
+                        itemStyle: {
+                            color: '#2563eb'
+                        }
+                    }],
+                    grid: {
+                        left: '3%',
+                        right: '4%',
+                        bottom: '3%',
+                        containLabel: true
+                    }
+                };
+                chart.setOption(option);
+                
+                // Responsive
+                window.addEventListener('resize', () => chart.resize());
+                
+                return chart;
+            }
+
+            // Monthly Energy Out Chart
+            function initMonthlyEnergyOutChart() {
+                const element = document.getElementById('monthlyEnergyOut');
+                if (!element) {
+                    console.error('Element monthlyEnergyOut not found');
+                    return null;
+                }
+                
+                console.log('Initializing monthlyEnergyOut chart', {
+                    labels: labelsMonthly,
+                    data: energyOutMonthly
+                });
+                
+                const chart = echarts.init(element);
+                const option = {
+                    tooltip: {
+                        trigger: 'axis',
+                        formatter: '{b}: {c} kWh'
+                    },
+                    xAxis: {
+                        type: 'category',
+                        data: labelsMonthly
+                    },
+                    yAxis: {
+                        type: 'value',
+                        name: 'kWh',
+                        axisLabel: {
+                            formatter: '{value} kWh'
+                        }
+                    },
+                    series: [{
+                        name: 'Energy Out',
+                        type: 'bar',
+                        data: energyOutMonthly,
+                        itemStyle: {
+                            color: '#0ea5e9'
+                        }
+                    }],
+                    grid: {
+                        left: '3%',
+                        right: '4%',
+                        bottom: '3%',
+                        containLabel: true
+                    }
+                };
+                chart.setOption(option);
+                
+                // Responsive
+                window.addEventListener('resize', () => chart.resize());
+                
+                return chart;
+            }
+
+            // Monthly Combined Chart
+            function initMonthlyCombinedChart() {
+                const element = document.getElementById('monthlyCombined');
+                if (!element) {
+                    console.error('Element monthlyCombined not found');
+                    return null;
+                }
+                
+                console.log('Initializing monthlyCombined chart');
+                
+                const chart = echarts.init(element);
+                const option = {
+                    tooltip: {
+                        trigger: 'axis'
+                    },
+                    legend: {
+                        data: ['Energy In', 'Energy Out']
+                    },
+                    xAxis: {
+                        type: 'category',
+                        data: labelsMonthly
+                    },
+                    yAxis: {
+                        type: 'value',
+                        name: 'kWh'
+                    },
+                    series: [
+                        {
+                            name: 'Energy In',
+                            type: 'bar',
+                            data: energyInMonthly,
+                            itemStyle: { color: '#2563eb' }
+                        },
+                        {
+                            name: 'Energy Out',
+                            type: 'bar',
+                            data: energyOutMonthly,
+                            itemStyle: { color: '#0ea5e9' }
+                        }
+                    ],
+                    grid: {
+                        left: '3%',
+                        right: '4%',
+                        bottom: '3%',
+                        containLabel: true
+                    }
+                };
+                chart.setOption(option);
+                
+                // Responsive
+                window.addEventListener('resize', () => chart.resize());
+                
+                return chart;
+            }
 
             // TAB SWITCH with enhanced animations
             const btnDaily = document.getElementById("btnDaily");
@@ -297,6 +584,35 @@
                     setTimeout(() => {
                         contentMonthly.classList.remove("opacity-0", "translate-y-4");
                         contentMonthly.classList.add("opacity-100", "translate-y-0");
+                        
+                        // Initialize monthly charts after element becomes visible
+                        // Wait a bit longer to ensure element is fully rendered
+                        setTimeout(() => {
+                            if (!monthlyCharts.energyIn) {
+                                monthlyCharts.energyIn = initMonthlyEnergyInChart();
+                            } else {
+                                monthlyCharts.energyIn.resize();
+                            }
+                            
+                            if (!monthlyCharts.energyOut) {
+                                monthlyCharts.energyOut = initMonthlyEnergyOutChart();
+                            } else {
+                                monthlyCharts.energyOut.resize();
+                            }
+                            
+                            if (!monthlyCharts.combined) {
+                                monthlyCharts.combined = initMonthlyCombinedChart();
+                            } else {
+                                monthlyCharts.combined.resize();
+                            }
+                            
+                            // Resize charts again to ensure proper rendering
+                            setTimeout(() => {
+                                if (monthlyCharts.energyIn) monthlyCharts.energyIn.resize();
+                                if (monthlyCharts.energyOut) monthlyCharts.energyOut.resize();
+                                if (monthlyCharts.combined) monthlyCharts.combined.resize();
+                            }, 200);
+                        }, 350);
                     }, 50);
                 }, 300);
             }
