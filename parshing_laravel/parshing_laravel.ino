@@ -76,32 +76,112 @@ void setup() {
     Serial.println("✅ Sistem siap menerima data LoRa dan mengirim ke Blynk & Laravel");
 }
 
+// ===== Fungsi escape JSON string =====
+String escapeJsonString(const String& str) {
+    String escaped = "";
+    for (unsigned int i = 0; i < str.length(); i++) {
+        char c = str.charAt(i);
+        if (c == '"') {
+            escaped += "\\\"";
+        } else if (c == '\\') {
+            escaped += "\\\\";
+        } else if (c == '\n') {
+            escaped += "\\n";
+        } else if (c == '\r') {
+            escaped += "\\r";
+        } else if (c == '\t') {
+            escaped += "\\t";
+        } else {
+            escaped += c;
+        }
+    }
+    return escaped;
+}
+
 // ===== Fungsi parsing data LoRa =====
 void parseLoRaData(const String& rawData) {
-    int commaCount = 0;
-    for (char c : rawData) if (c == ',') commaCount++;
-    if (commaCount != 6) {
-        Serial.println("❌ Format data tidak valid (comma != 6)");
+    // Validasi panjang data minimal
+    if (rawData.length() < 10) {
+        Serial.println("❌ Data terlalu pendek");
         return;
     }
 
+    // Hitung jumlah koma
+    int commaCount = 0;
+    for (unsigned int i = 0; i < rawData.length(); i++) {
+        if (rawData.charAt(i) == ',') commaCount++;
+    }
+    
+    if (commaCount != 6) {
+        Serial.print("❌ Format data tidak valid (comma = ");
+        Serial.print(commaCount);
+        Serial.println(", harus 6 untuk 7 nilai)");
+        Serial.print("Data yang diterima: [");
+        Serial.print(rawData);
+        Serial.println("]");
+        return;
+    }
+
+    // Cari posisi setiap koma
     int i1 = rawData.indexOf(',');
+    if (i1 < 0) {
+        Serial.println("❌ Koma pertama tidak ditemukan");
+        return;
+    }
+    
     int i2 = rawData.indexOf(',', i1 + 1);
     int i3 = rawData.indexOf(',', i2 + 1);
     int i4 = rawData.indexOf(',', i3 + 1);
     int i5 = rawData.indexOf(',', i4 + 1);
     int i6 = rawData.indexOf(',', i5 + 1);
 
-    g_temperature = rawData.substring(0, i1).toFloat();
-    g_batV       = rawData.substring(i1 + 1, i2).toFloat();
-    g_panelV     = rawData.substring(i2 + 1, i3).toFloat();
-    g_panelW     = rawData.substring(i3 + 1, i4).toFloat();
-    g_chargingW  = rawData.substring(i4 + 1, i5).toFloat();
-    g_batPct     = rawData.substring(i5 + 1, i6).toFloat();
-    g_batWh      = rawData.substring(i6 + 1).toFloat();
+    // Validasi semua index ditemukan
+    if (i2 < 0 || i3 < 0 || i4 < 0 || i5 < 0 || i6 < 0) {
+        Serial.println("❌ Format CSV tidak lengkap (tidak semua koma ditemukan)");
+        return;
+    }
+
+    // Parse setiap nilai dengan validasi
+    String tempStr = rawData.substring(0, i1);
+    tempStr.trim();
+    g_temperature = tempStr.toFloat();
+    
+    tempStr = rawData.substring(i1 + 1, i2);
+    tempStr.trim();
+    g_batV = tempStr.toFloat();
+    
+    tempStr = rawData.substring(i2 + 1, i3);
+    tempStr.trim();
+    g_panelV = tempStr.toFloat();
+    
+    tempStr = rawData.substring(i3 + 1, i4);
+    tempStr.trim();
+    g_panelW = tempStr.toFloat();
+    
+    tempStr = rawData.substring(i4 + 1, i5);
+    tempStr.trim();
+    g_chargingW = tempStr.toFloat();
+    
+    tempStr = rawData.substring(i5 + 1, i6);
+    tempStr.trim();
+    g_batPct = tempStr.toFloat();
+    
+    tempStr = rawData.substring(i6 + 1);
+    tempStr.trim();
+    g_batWh = tempStr.toFloat();
+
+    // Debug: tampilkan nilai yang diparsing
+    Serial.println("📡 Data berhasil diparsing:");
+    Serial.print("  Temperature: "); Serial.println(g_temperature);
+    Serial.print("  BatV: "); Serial.println(g_batV);
+    Serial.print("  PanelV: "); Serial.println(g_panelV);
+    Serial.print("  PanelW: "); Serial.println(g_panelW);
+    Serial.print("  ChargingW: "); Serial.println(g_chargingW);
+    Serial.print("  BatPct: "); Serial.println(g_batPct);
+    Serial.print("  BatWh: "); Serial.println(g_batWh);
 
     newDataAvailable = true;
-    Serial.println("📡 Data berhasil diparsing → siap kirim ke Blynk & Laravel");
+    Serial.println("✅ Data siap kirim ke Blynk & Laravel");
 }
 
 // ===== Fungsi kirim ke Laravel =====
@@ -129,8 +209,9 @@ void sendToLaravel(const String& csvData) {
     http.begin(laravelApiUrl);
     http.addHeader("Content-Type", "application/json");
 
-    // Format JSON: {"data": "csv_string"}
-    String jsonPayload = "{\"data\":\"" + csvData + "\"}";
+    // Format JSON: {"data": "csv_string"} dengan escape karakter khusus
+    String escapedCsv = escapeJsonString(csvData);
+    String jsonPayload = "{\"data\":\"" + escapedCsv + "\"}";
     Serial.print("JSON Payload: ");
     Serial.println(jsonPayload);
 
@@ -167,19 +248,56 @@ void sendToLaravel(const String& csvData) {
 }
 
 void loop() {
-    // Debug: tampilkan RAW data yang masuk
+    // Baca data dari LoRa serial dengan timeout
     if (LoRa.available()) {
-        String rawData = LoRa.readStringUntil('\n');
+        String rawData = "";
+        unsigned long startTime = millis();
+        const unsigned long timeout = 1000; // Timeout 1 detik
+        
+        // Baca data sampai menemukan newline atau timeout
+        while (millis() - startTime < timeout) {
+            if (LoRa.available()) {
+                char c = LoRa.read();
+                if (c == '\n' || c == '\r') {
+                    break; // Selesai membaca baris
+                }
+                rawData += c;
+            }
+            delay(1); // Small delay untuk stability
+        }
+        
+        // Bersihkan whitespace dan karakter kontrol
         rawData.trim();
-
-        Serial.print("<< RAW LORA: ");
-        Serial.println(rawData);
-
+        
+        // Hapus karakter kontrol yang mungkin mengganggu
+        rawData.replace("\r", "");
+        rawData.replace("\n", "");
+        rawData.replace("\t", "");
+        
         if (rawData.length() > 0) {
-            parseLoRaData(rawData);
+            Serial.print("<< RAW LORA [");
+            Serial.print(rawData.length());
+            Serial.print(" chars]: ");
+            Serial.println(rawData);
+
+            // Validasi format CSV sebelum parsing
+            int commaCount = 0;
+            for (unsigned int i = 0; i < rawData.length(); i++) {
+                if (rawData.charAt(i) == ',') commaCount++;
+            }
             
-            // Langsung kirim CSV ke Laravel juga
-            sendToLaravel(rawData);
+            if (commaCount == 6) {
+                parseLoRaData(rawData);
+                
+                // Kirim CSV ke Laravel hanya jika parsing berhasil
+                if (newDataAvailable) {
+                    sendToLaravel(rawData);
+                }
+            } else {
+                Serial.print("⚠️ Format tidak valid: ditemukan ");
+                Serial.print(commaCount);
+                Serial.println(" koma (harus 6)");
+            }
         }
     }
 
