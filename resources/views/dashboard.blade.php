@@ -42,11 +42,11 @@
             <p class="font-semibold text-yellow-800">🔍 Debug Info - Data Terbaru:</p>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2 text-yellow-700">
                 <span>Temp: {{ $suhu }}°C</span>
-                <span>Bat V: {{ number_format($bat_v ?? 0, 2) }}V</span>
-                <span>Panel V: {{ number_format($panel_v ?? 0, 2) }}V</span>
-                <span>Bat Wh: {{ number_format($bat_wh ?? 0, 1) }}Wh</span>
+                <span>Bat V: {{ $bat_v }}V</span>
+                <span>Panel V: {{ $panel_v }}V</span>
+                <span>Bat Wh: {{ $bat_wh }}Wh</span>
             </div>
-            <p class="text-xs text-yellow-600 mt-2">Last Update: {{ $latest_data->created_at->format('d/m/Y H:i:s') }}</p>
+            <p class="text-xs text-yellow-600 mt-2">Last Update: {{ $latest_data->created_at->setTimezone('Asia/Jakarta')->format('d/m/Y H:i:s') }} WIB</p>
         </div>
         @else
         <div class="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
@@ -59,19 +59,31 @@
             <div class="p-6 bg-blue-500 text-white rounded-xl shadow-md">
                 <h5 class="text-lg font-semibold">Daya Panel Surya (kW)</h5>
                 <h2 class="text-3xl font-bold mt-2">{{ $sisa_daya_plts }}</h2>
-                <p class="text-sm opacity-80">Panel Power: {{ number_format($panel_v ?? 0, 2) }}V</p>
+                <p class="text-sm opacity-80">Panel Power: {{ $panel_v }}V</p>
             </div>
 
             <div class="p-6 bg-white rounded-xl shadow-md">
                 <h5 class="text-lg font-semibold text-gray-700">Kapasitas Baterai (%)</h5>
-                <h2 class="text-3xl font-bold mt-2 text-gray-900">{{ $sisa_daya_kendaraan }}%</h2>
-                <p class="text-sm text-gray-500">Battery: {{ number_format($bat_v ?? 0, 2) }}V | {{ number_format($bat_wh ?? 0, 1) }}Wh</p>
+                <h2 class="text-3xl font-bold mt-2 text-gray-900">
+                    @if($sisa_daya_kendaraan === 'N/a')
+                        N/a
+                    @else
+                        {{ $sisa_daya_kendaraan }}%
+                    @endif
+                </h2>
+                <p class="text-sm text-gray-500">Battery: {{ $bat_v }}V | {{ $bat_wh }}Wh</p>
             </div>
 
             <div class="p-6 bg-white rounded-xl shadow-md">
                 <h5 class="text-lg font-semibold text-gray-700">Perkiraan Waktu Pengisian</h5>
-                <h2 class="text-3xl font-bold mt-2 text-gray-900">{{ $perkiraan_waktu }} jam</h2>
-                <p class="text-sm text-gray-500">Charging Power: {{ number_format($in_kwh, 2) }} kW</p>
+                <h2 class="text-3xl font-bold mt-2 text-gray-900">
+                    @if($perkiraan_waktu === 'N/a')
+                        N/a
+                    @else
+                        {{ $perkiraan_waktu }} jam
+                    @endif
+                </h2>
+                <p class="text-sm text-gray-500">Charging Power: {{ $in_kwh }} kW</p>
             </div>
         </div>
 
@@ -155,27 +167,54 @@
                     console.error('Error loading data:', error);
                 });
 
-            // Auto-refresh setiap 8 detik
+            // Auto-refresh setiap 1 menit
             setInterval(() => {
                 location.reload();
-            }, 60000);
+            }, 10000);
         });
 
         function formatTimestamp(timestamp) {
             const date = new Date(timestamp);
-            return date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+            return date.toLocaleTimeString('id-ID', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                timeZone: 'Asia/Jakarta'
+            });
         }
 
         function initTemperatureChart(data) {
             const chart = echarts.init(document.getElementById('temperatureChart'));
             const option = {
-                tooltip: { trigger: 'axis' },
+                tooltip: { 
+                    trigger: 'axis',
+                    formatter: function(params) {
+                        const value = params[0].value[1];
+                        return params[0].name + '<br/>' + 
+                               params[0].seriesName + ': ' + 
+                               parseFloat(value).toLocaleString('id-ID', { 
+                                   minimumFractionDigits: 0, 
+                                   maximumFractionDigits: 1 
+                               }) + '°C';
+                    }
+                },
                 xAxis: {
                     type: 'time',
                     data: data.map(d => d[1])
                 },
-                yAxis: { type: 'value', name: '°C' },
+                yAxis: { 
+                    type: 'value', 
+                    name: '°C',
+                    axisLabel: {
+                        formatter: function(value) {
+                            return parseFloat(value).toLocaleString('id-ID', { 
+                                minimumFractionDigits: 0, 
+                                maximumFractionDigits: 1 
+                            });
+                        }
+                    }
+                },
                 series: [{
+                    name: 'Temperature',
                     data: data.map(d => [d[1], d[0]]),
                     type: 'line',
                     smooth: true,
@@ -191,10 +230,33 @@
         function initBatteryVoltageChart(data) {
             const chart = echarts.init(document.getElementById('batteryVoltageChart'));
             const option = {
-                tooltip: { trigger: 'axis' },
+                tooltip: { 
+                    trigger: 'axis',
+                    formatter: function(params) {
+                        const value = params[0].value[1];
+                        return params[0].name + '<br/>' + 
+                               params[0].seriesName + ': ' + 
+                               parseFloat(value).toLocaleString('id-ID', { 
+                                   minimumFractionDigits: 0, 
+                                   maximumFractionDigits: 1 
+                               }) + 'V';
+                    }
+                },
                 xAxis: { type: 'time', data: data.map(d => d[1]) },
-                yAxis: { type: 'value', name: 'V' },
+                yAxis: { 
+                    type: 'value', 
+                    name: 'V',
+                    axisLabel: {
+                        formatter: function(value) {
+                            return parseFloat(value).toLocaleString('id-ID', { 
+                                minimumFractionDigits: 0, 
+                                maximumFractionDigits: 1 
+                            });
+                        }
+                    }
+                },
                 series: [{
+                    name: 'Battery Voltage',
                     data: data.map(d => [d[1], d[0]]),
                     type: 'line',
                     smooth: true,
@@ -210,10 +272,33 @@
         function initPanelPowerChart(data) {
             const chart = echarts.init(document.getElementById('panelPowerChart'));
             const option = {
-                tooltip: { trigger: 'axis' },
+                tooltip: { 
+                    trigger: 'axis',
+                    formatter: function(params) {
+                        const value = params[0].value[1];
+                        return params[0].name + '<br/>' + 
+                               params[0].seriesName + ': ' + 
+                               parseFloat(value).toLocaleString('id-ID', { 
+                                   minimumFractionDigits: 0, 
+                                   maximumFractionDigits: 1 
+                               }) + ' kW';
+                    }
+                },
                 xAxis: { type: 'time', data: data.map(d => d[1]) },
-                yAxis: { type: 'value', name: 'kW' },
+                yAxis: { 
+                    type: 'value', 
+                    name: 'kW',
+                    axisLabel: {
+                        formatter: function(value) {
+                            return parseFloat(value).toLocaleString('id-ID', { 
+                                minimumFractionDigits: 0, 
+                                maximumFractionDigits: 1 
+                            });
+                        }
+                    }
+                },
                 series: [{
+                    name: 'Panel Power',
                     data: data.map(d => [d[1], d[0]]),
                     type: 'line',
                     smooth: true,

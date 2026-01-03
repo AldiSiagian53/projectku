@@ -191,7 +191,7 @@
                 </form>
             </div>
         </div>
-
+        
         {{-- ADDITIONAL INFO CARD --}}
         <div class="mt-6 bg-white rounded-xl shadow-md p-6">
             <div class="flex items-center mb-4">

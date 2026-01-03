@@ -2,7 +2,13 @@
 
 use App\Http\Controllers\SolarController;
 use App\Http\Controllers\GrafanaController;
+use App\Http\Controllers\ReceiverController;
 use Illuminate\Support\Facades\Route;
+
+// Route untuk mengontrol receiver (mulai/berhenti menerima data dari transmitter)
+Route::post('/receiver/start', [ReceiverController::class, 'start']);
+Route::post('/receiver/stop', [ReceiverController::class, 'stop']);
+Route::get('/receiver/status', [ReceiverController::class, 'status']);
 
 // Route untuk menerima data dari Arduino/ESP32
 Route::post('/sensor', [SolarController::class, 'store']);

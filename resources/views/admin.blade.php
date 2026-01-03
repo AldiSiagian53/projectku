@@ -269,7 +269,7 @@
                                         </span>
                                         <span class="text-xs text-gray-500">
                                             <i class="ri-time-line mr-1"></i>
-                                            {{ $user->created_at->format('d M Y, H:i') }}
+                                            {{ $user->created_at->setTimezone('Asia/Jakarta')->format('d M Y, H:i') }} WIB
                                         </span>
                                     </div>
                                 </div>

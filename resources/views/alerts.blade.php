@@ -500,19 +500,19 @@
                     // Update text
                     document.getElementById('totalAlertsCount').textContent = {{ $monthlyStats['total_monthly_alerts'] }};
                     document.getElementById('totalAlertsSubtitle').textContent = 'Year Total';
-                    document.getElementById('totalAlertsAction').textContent = 'View monthly trends';
+                    //document.getElementById('totalAlertsAction').textContent = 'View monthly trends';
                     
                     document.getElementById('activeAlertsCount').textContent = {{ $monthlyStats['avg_active_alerts'] }};
                     document.getElementById('activeAlertsSubtitle').textContent = 'Monthly Average';
-                    document.getElementById('activeAlertsAction').textContent = 'View active trends';
+                    //document.getElementById('activeAlertsAction').textContent = 'View active trends';
                     
                     document.getElementById('resolvedAlertsCount').textContent = {{ $monthlyStats['avg_resolved_alerts'] }};
                     document.getElementById('resolvedAlertsSubtitle').textContent = 'Monthly Average';
-                    document.getElementById('resolvedAlertsAction').textContent = 'View resolved trends';
+                    //document.getElementById('resolvedAlertsAction').textContent = 'View resolved trends';
                     
                     document.getElementById('criticalAlertsCount').textContent = {{ $monthlyStats['total_critical_alerts'] }};
                     document.getElementById('criticalAlertsSubtitle').textContent = 'Year Total';
-                    document.getElementById('criticalAlertsAction').textContent = 'View critical trends';
+                    //document.getElementById('criticalAlertsAction').textContent = 'View critical trends';
                 } else {
                     // Update untuk Daily View - Aktifkan kembali onclick
                     const totalCard = document.getElementById('totalAlertsCard');

@@ -42,92 +42,129 @@ class GrafanaController extends Controller
     }
 
     /**
-     * Get time series data berdasarkan target name
+     * Get time series data berdasarkan target name dengan aggregation untuk mengurangi data points
      */
     private function getTimeSeriesData($target, $from, $to)
     {
-        $data = SensorData::whereBetween('created_at', [$from, $to])
-            ->orderBy('created_at')
-            ->get();
+        // Hitung durasi dalam menit
+        $durationMinutes = $from->diffInMinutes($to);
+        
+        // Tentukan interval aggregation berdasarkan durasi
+        // Semakin lama durasi, semakin besar interval untuk mengurangi jumlah data points
+        $intervalMinutes = $this->calculateInterval($durationMinutes);
+        
+        // Tentukan field berdasarkan target
+        $field = $this->getFieldName($target);
+        
+        if (!$field) {
+            return [];
+        }
 
-        $datapoints = [];
+        // Gunakan aggregation untuk mengurangi jumlah data points
+        // Untuk fleksibilitas dan kompatibilitas dengan SQLite, kita gunakan approach manual
+        return $this->getAggregatedDataByInterval($target, $from, $to, $intervalMinutes);
+    }
 
+    /**
+     * Hitung interval aggregation berdasarkan durasi query
+     */
+    private function calculateInterval($durationMinutes)
+    {
+        // Maksimal 200 data points untuk performa yang baik
+        $maxDataPoints = 200;
+        $intervalMinutes = max(1, ceil($durationMinutes / $maxDataPoints));
+        
+        // Round up ke interval yang lebih "bersih" untuk readability
+        if ($intervalMinutes >= 1440) { // >= 1 hari
+            return 1440; // 1 hari
+        } elseif ($intervalMinutes >= 60) { // >= 1 jam
+            // Round ke 5, 10, 15, 30 menit atau 1 jam
+            $rounded = [5, 10, 15, 30, 60];
+            foreach ($rounded as $r) {
+                if ($intervalMinutes <= $r) {
+                    return $r;
+                }
+            }
+            return 60; // Default 1 jam
+        } else {
+            // Round ke 1, 2, 5, 10, 15 menit
+            $rounded = [1, 2, 5, 10, 15];
+            foreach ($rounded as $r) {
+                if ($intervalMinutes <= $r) {
+                    return $r;
+                }
+            }
+            return 1; // Default 1 menit
+        }
+    }
+
+    /**
+     * Get field name berdasarkan target
+     */
+    private function getFieldName($target)
+    {
         switch (strtolower($target)) {
             case 'temperature':
             case 'temp':
-                foreach ($data as $row) {
-                    $datapoints[] = [
-                        floatval($row->temperature ?? 0),
-                        strtotime($row->created_at) * 1000
-                    ];
-                }
-                break;
-
+                return 'temperature';
             case 'battery_voltage':
             case 'bat_v':
-                foreach ($data as $row) {
-                    $datapoints[] = [
-                        floatval($row->bat_v ?? 0),
-                        strtotime($row->created_at) * 1000
-                    ];
-                }
-                break;
-
+                return 'bat_v';
             case 'panel_voltage':
             case 'panel_v':
-                foreach ($data as $row) {
-                    $datapoints[] = [
-                        floatval($row->panel_v ?? 0),
-                        strtotime($row->created_at) * 1000
-                    ];
-                }
-                break;
-
+                return 'panel_v';
             case 'panel_power':
             case 'panel_w':
-                foreach ($data as $row) {
-                    $datapoints[] = [
-                        floatval($row->panel_power ?? 0),
-                        strtotime($row->created_at) * 1000
-                    ];
-                }
-                break;
-
+                return 'panel_power';
             case 'charging_power':
             case 'charging_w':
             case 'energy_in':
-                foreach ($data as $row) {
-                    $datapoints[] = [
-                        floatval($row->charging_power ?? 0),
-                        strtotime($row->created_at) * 1000
-                    ];
-                }
-                break;
-
+                return 'charging_power';
             case 'battery_percent':
             case 'bat_percent':
             case 'battery_level':
-                foreach ($data as $row) {
-                    $datapoints[] = [
-                        floatval($row->bat_percent ?? 0),
-                        strtotime($row->created_at) * 1000
-                    ];
-                }
-                break;
-
+                return 'bat_percent';
             case 'battery_wh':
             case 'bat_wh':
-                foreach ($data as $row) {
-                    $datapoints[] = [
-                        floatval($row->bat_wh ?? 0),
-                        strtotime($row->created_at) * 1000
-                    ];
-                }
-                break;
-
+                return 'bat_wh';
             default:
-                // Return empty jika target tidak dikenal
-                break;
+                return null;
+        }
+    }
+
+    /**
+     * Get aggregated data by custom interval (untuk interval < 1 jam)
+     */
+    private function getAggregatedDataByInterval($target, $from, $to, $intervalMinutes)
+    {
+        $field = $this->getFieldName($target);
+        
+        if (!$field) {
+            return [];
+        }
+
+        $datapoints = [];
+        $current = $from->copy();
+        
+        while ($current->lt($to)) {
+            $intervalEnd = $current->copy()->addMinutes($intervalMinutes);
+            if ($intervalEnd->gt($to)) {
+                $intervalEnd = $to->copy();
+            }
+            
+            // Ambil rata-rata data dalam interval ini
+            $avgValue = SensorData::whereBetween('created_at', [$current, $intervalEnd])
+                ->whereNotNull($field)
+                ->avg($field);
+            
+            if ($avgValue !== null) {
+                $datapoints[] = [
+                    floatval($avgValue),
+                    $current->timestamp * 1000
+                ];
+            }
+            
+            $current = $intervalEnd;
         }
 
         return $datapoints;
@@ -186,15 +223,17 @@ class GrafanaController extends Controller
 
     /**
      * Get all sensor data untuk chart (alternative jika tidak pakai Grafana)
+     * Dengan aggregation untuk mengurangi jumlah data points
      */
     public function getTimeSeriesApi(Request $request)
     {
         $hours = $request->input('hours', 24);
         $from = Carbon::now()->subHours($hours);
+        $to = Carbon::now();
         
-        $data = SensorData::where('created_at', '>=', $from)
-            ->orderBy('created_at')
-            ->get();
+        // Hitung interval aggregation
+        $durationMinutes = $from->diffInMinutes($to);
+        $intervalMinutes = $this->calculateInterval($durationMinutes);
 
         $result = [
             'temperature' => [],
@@ -206,20 +245,24 @@ class GrafanaController extends Controller
             'battery_wh' => [],
         ];
 
-        foreach ($data as $row) {
-            $timestamp = strtotime($row->created_at) * 1000;
-            
-            $result['temperature'][] = [$row->temperature ?? 0, $timestamp];
-            $result['battery_voltage'][] = [$row->bat_v ?? 0, $timestamp];
-            $result['panel_voltage'][] = [$row->panel_v ?? 0, $timestamp];
-            $result['panel_power'][] = [$row->panel_power ?? 0, $timestamp];
-            $result['charging_power'][] = [$row->charging_power ?? 0, $timestamp];
-            $result['battery_percent'][] = [$row->bat_percent ?? 0, $timestamp];
-            $result['battery_wh'][] = [$row->bat_wh ?? 0, $timestamp];
+        // Gunakan aggregation untuk setiap field
+        $fields = [
+            'temperature' => 'temperature',
+            'battery_voltage' => 'bat_v',
+            'panel_voltage' => 'panel_v',
+            'panel_power' => 'panel_power',
+            'charging_power' => 'charging_power',
+            'battery_percent' => 'bat_percent',
+            'battery_wh' => 'bat_wh',
+        ];
+
+        foreach ($fields as $resultKey => $dbField) {
+            $result[$resultKey] = $this->getAggregatedDataByInterval($resultKey, $from, $to, $intervalMinutes);
         }
 
         return response()->json($result);
     }
 }
+
 
 

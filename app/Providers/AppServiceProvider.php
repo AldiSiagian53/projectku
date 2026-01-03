@@ -5,6 +5,8 @@ namespace App\Providers;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\View;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\AlertController;
+use Carbon\Carbon;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -21,10 +23,17 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Share system status data ke semua view (untuk sidebar)
+        // Set default timezone untuk Carbon ke WIB (Asia/Jakarta)
+        Carbon::setLocale('id');
+        date_default_timezone_set(config('app.timezone', 'Asia/Jakarta'));
+        
+        // Share system status + alert count ke sidebar
         View::composer('components.sidebar', function ($view) {
             $systemStatus = DashboardController::getSystemStatus();
+            $alertCounts = AlertController::getSidebarAlertCounts();
+
             $view->with('systemStatus', $systemStatus);
+            $view->with('alertCounts', $alertCounts);
         });
     }
 }

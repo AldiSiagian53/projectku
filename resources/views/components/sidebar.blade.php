@@ -42,7 +42,9 @@
                         <i class="ri-notification-line text-lg"></i>
                     </div>
                     <span class="font-semibold">Alerts</span>
-                    <span class="ml-auto bg-red-500 text-white text-xs px-2 py-1 rounded-full animate-pulse">6</span>
+                    <span class="ml-auto bg-red-500 text-white text-xs px-2 py-1 rounded-full animate-pulse">
+                        {{ $alertCounts['active'] ?? 0 }}
+                    </span>
                 </div>
             </a>
 
@@ -144,7 +146,9 @@
                         <i class="ri-notification-line text-xl"></i>
                     </div>
                     <span class="font-semibold text-lg">Alerts</span>
-                    <span class="ml-auto bg-red-500 text-white text-sm px-2 py-1 rounded-full animate-pulse">3</span>
+                    <span class="ml-auto bg-red-500 text-white text-sm px-2 py-1 rounded-full animate-pulse">
+                        {{ $alertCounts['active'] ?? 0 }}
+                    </span>
                 </div>
             </a>
 

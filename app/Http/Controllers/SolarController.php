@@ -5,12 +5,25 @@ namespace App\Http\Controllers;
 use App\Models\SensorData;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 
 class SolarController extends Controller
 {
     public function store(Request $request)
     {
         try {
+            // Cek status receiver - jika nonaktif, tolak data
+            $receiverStatus = Cache::get('receiver_status', 'active'); // Default aktif jika belum diset
+            
+            if ($receiverStatus === 'inactive') {
+                Log::info('Data ditolak karena receiver nonaktif', $request->all());
+                
+                return response()->json([
+                    'status' => 'rejected',
+                    'message' => 'Receiver sedang nonaktif. Aktifkan receiver terlebih dahulu melalui /api/receiver/start'
+                ], 403);
+            }
+
             // Ambil data dari request
             // Format bisa berupa JSON atau CSV string
             $data = $request->all();

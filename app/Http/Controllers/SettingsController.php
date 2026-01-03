@@ -22,7 +22,21 @@ class SettingsController extends Controller
             return redirect()->route('login');
         }
 
-        return view('settings', compact('user'));
+        // Default konfigurasi receiver (bisa diisi dari file Dummy.ino kalau mau dikembangkan)
+        $receiverConfig = [
+            'wifi_ssid'           => '',
+            'wifi_pass'           => '',
+            'laravel_ip'          => '192.168.1.102',
+            'laravel_port'        => '8000',
+            'blynk_template_id'   => '',
+            'blynk_template_name' => '',
+            'blynk_auth_token'    => '',
+        ];
+
+        return view('settings', array_merge(
+            ['user' => $user],
+            $receiverConfig
+        ));
     }
 
     /**

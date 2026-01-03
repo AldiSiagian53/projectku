@@ -3,6 +3,8 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LoginController;
+use App\Http\Controllers\ReceiverController;
+use App\Http\Controllers\ArduinoConfigController;
 
 // Login Routes (public)
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
@@ -13,8 +15,18 @@ Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 Route::post('/admin/activate', [App\Http\Controllers\AdminController::class, 'activate'])->name('admin.activate');
 
 // Admin Login Routes (public but requires hidden key activation)
-Route::get('/admin/login', [App\Http\Controllers\AdminLoginController::class, 'showAdminLoginForm'])->name('admin.login');
-Route::post('/admin/login', [App\Http\Controllers\AdminLoginController::class, 'adminLogin']);
+Route::get('/adminlogin', [App\Http\Controllers\AdminLoginController::class, 'showAdminLoginForm'])->name('admin.login');
+Route::post('/adminlogin', [App\Http\Controllers\AdminLoginController::class, 'adminLogin']);
+
+// Receiver Control Page (public - bisa diakses tanpa login untuk kontrol receiver)
+Route::get('/receiver', [ReceiverController::class, 'index'])->name('receiver.index');
+Route::post('/receiver/start', [ReceiverController::class, 'start'])->name('receiver.start');
+Route::post('/receiver/stop', [ReceiverController::class, 'stop'])->name('receiver.stop');
+Route::get('/receiver/status', [ReceiverController::class, 'status'])->name('receiver.status');
+
+// Konfigurasi Receiver (WiFi, IP, Blynk) - sebaiknya hanya bisa diakses admin (sementara public dulu)
+Route::get('/receiver/config', [ArduinoConfigController::class, 'edit'])->name('receiver.config.edit');
+Route::post('/receiver/config', [ArduinoConfigController::class, 'update'])->name('receiver.config.update');
 
 // Root redirect
 Route::get('/', function () {
